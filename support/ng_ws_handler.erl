@@ -4,8 +4,9 @@
          websocket_message/3,
          websocket_info/2,
          websocket_terminate/2]).
--export([reply/3]).
+-export([reply/3, reply_error/3]).
 
+-include_lib("zotonic.hrl").
 
 -export([behaviour_info/1]).
 
@@ -26,24 +27,35 @@ websocket_init(Context) ->
 websocket_message(<<"call:", ReplyId:8/binary, ":", Call/binary>>, From, Context) ->
     [HandlerBin, Rest] = binary:split(Call, <<":">>),
     [CmdBin, PayloadBin] = binary:split(Rest, <<":">>),
-    Cmd = list_to_existing_atom(binary_to_list(CmdBin)),
-    {struct, Payload} = mochijson:decode(PayloadBin),
-    Handler = list_to_existing_atom(binary_to_list(HandlerBin)),
-    case Handler:ws_call(Cmd, Payload, From, ReplyId, Context) of
-        {reply, Reply} ->
-            reply(From, ReplyId, Reply);
-        noreply ->
-            ok
+    try
+        Cmd = list_to_existing_atom(binary_to_list(CmdBin)),
+        {struct, Payload} = mochijson:decode(PayloadBin),
+        Handler = list_to_existing_atom(binary_to_list(HandlerBin)),
+        case Handler:ws_call(Cmd, Payload, From, ReplyId, Context) of
+            {reply, Reply} ->
+                reply(From, ReplyId, Reply);
+            {error, Reason} ->
+                reply_error(From, ReplyId, Reason);
+            noreply ->
+                ok
+        end
+    catch
+        E:H ->
+            ?zWarning(io_lib:format("Call: ~p:~p", [E, H]), Context),
+            reply_error(From, ReplyId, iolist_to_binary(io_lib:format("~p:~p", [E, H])))
     end;
 
 websocket_message(<<"cast:", Cast/binary>>, From, Context) ->
     [HandlerBin, Rest] = binary:split(Cast, <<":">>),
     [CmdBin, PayloadBin] = binary:split(Rest, <<":">>),
-    Cmd = list_to_existing_atom(binary_to_list(CmdBin)),
-    {struct, Payload} = mochijson:decode(PayloadBin),
-    Handler = list_to_existing_atom(binary_to_list(HandlerBin)),
-    Handler:ws_cast(Cmd, Payload, From, Context),
-    ok;
+    try
+        Cmd = list_to_existing_atom(binary_to_list(CmdBin)),
+        {struct, Payload} = mochijson:decode(PayloadBin),
+        Handler = list_to_existing_atom(binary_to_list(HandlerBin)),
+        Handler:ws_cast(Cmd, Payload, From, Context)
+    catch
+        E:H -> ?zWarning(io_lib:format("Cast: ~p:~p", [E, H]), Context)
+    end;
 
 %% @doc Called when a message arrives on the websocket.
 websocket_message(Msg, _From, _Context) ->
@@ -66,5 +78,11 @@ websocket_terminate(_Reason, Context) ->
 %% @doc Send a reply to a call.
 reply(Pid, ReplyId, Reply) ->
     Msg = mochijson:encode({struct, [{reply_id, ReplyId}, {reply, Reply}]}),
+    controller_websocket:websocket_send_data(Pid, Msg).
+  
+
+%% @doc Send an error reply to a call.
+reply_error(Pid, ReplyId, Reason) ->
+    Msg = mochijson:encode({struct, [{reply_id, ReplyId}, {error, Reason}]}),
     controller_websocket:websocket_send_data(Pid, Msg).
   
