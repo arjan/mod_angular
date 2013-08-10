@@ -1,0 +1,5 @@
+%% -*- mode: erlang -*-
+[
+ {app,   [],	         controller_template,     [{template, "app.tpl"}]},
+ {ws,    ["ng", "socket"],	     controller_websocket,    [{ws_handler, ng_ws_handler}]}
+].
