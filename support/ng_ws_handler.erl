@@ -4,9 +4,13 @@
          websocket_message/3,
          websocket_info/2,
          websocket_terminate/2]).
+-export([reply/3]).
+
 
 -export([behaviour_info/1]).
 
+%% @doc Implementing ws handlers need to have ws_cast and ws_call
+%% functions for interfacing with Javascript.
 behaviour_info(callbacks) ->
     [{ws_call,5},
      {ws_cast, 4}];
@@ -59,6 +63,7 @@ websocket_terminate(_Reason, Context) ->
     z_notifier:notify1({ng_ws_closed, self()}, Context),
     ok.
 
+%% @doc Send a reply to a call.
 reply(Pid, ReplyId, Reply) ->
     Msg = mochijson:encode({struct, [{reply_id, ReplyId}, {reply, Reply}]}),
     controller_websocket:websocket_send_data(Pid, Msg).
