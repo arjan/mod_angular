@@ -9,3 +9,7 @@
 -mod_description("Develop Angular JS applications with websocket communication.").
 -mod_prio(800).
 
+-export([observe_ng_rsc_props/2]).
+
+observe_ng_rsc_props({ng_rsc_props, Id}, Context) ->
+    m_rsc_export:full(Id, Context).
