@@ -29,7 +29,7 @@ websocket_message(<<"call:", ReplyId:8/binary, ":", Call/binary>>, From, Context
     [CmdBin, PayloadBin] = binary:split(Rest, <<":">>),
     try
         Cmd = list_to_existing_atom(binary_to_list(CmdBin)),
-        {struct, Payload} = mochijson:decode(PayloadBin),
+        Payload = z_convert:convert_json(mochijson:decode(PayloadBin)),
         Handler = list_to_existing_atom(binary_to_list(HandlerBin)),
         case Handler:ws_call(Cmd, Payload, From, ReplyId, Context) of
             {reply, Reply} ->
@@ -50,7 +50,7 @@ websocket_message(<<"cast:", Cast/binary>>, From, Context) ->
     [CmdBin, PayloadBin] = binary:split(Rest, <<":">>),
     try
         Cmd = list_to_existing_atom(binary_to_list(CmdBin)),
-        {struct, Payload} = mochijson:decode(PayloadBin),
+        Payload = z_convert:convert_json(mochijson:decode(PayloadBin)),
         Handler = list_to_existing_atom(binary_to_list(HandlerBin)),
         Handler:ws_cast(Cmd, Payload, From, Context)
     catch
