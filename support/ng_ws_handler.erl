@@ -41,7 +41,7 @@ websocket_message(<<"call:", ReplyId:8/binary, ":", Call/binary>>, From, Context
         end
     catch
         E:H ->
-            ?zWarning(io_lib:format("Call: ~p:~p", [E, H]), Context),
+            io:format("~p~n", [erlang:get_stacktrace()]),?zWarning(io_lib:format("Call: ~p:~p", [E, H]), Context),
             reply_error(From, ReplyId, iolist_to_binary(io_lib:format("~p:~p", [E, H])))
     end;
 
@@ -54,7 +54,8 @@ websocket_message(<<"cast:", Cast/binary>>, From, Context) ->
         Handler = list_to_existing_atom(binary_to_list(HandlerBin)),
         Handler:ws_cast(Cmd, Payload, From, Context)
     catch
-        E:H -> ?zWarning(io_lib:format("Cast: ~p:~p", [E, H]), Context)
+        E:H -> io:format("~p~n", [erlang:get_stacktrace()]),
+               ?zWarning(io_lib:format("Cast: ~p:~p", [E, H]), Context)
     end;
 
 %% @doc Called when a message arrives on the websocket.
