@@ -50,12 +50,8 @@ process_post(ReqData, Context) ->
     end.
 
 handle_message(<<"call:", ReplyId:8/binary, ":", Call/binary>>, Context) ->
-    [HandlerBin, Rest] = binary:split(Call, <<":">>),
-    [CmdBin, PayloadBin] = binary:split(Rest, <<":">>),
     try
-        Cmd = list_to_existing_atom(binary_to_list(CmdBin)),
-        Payload = z_convert:convert_json(mochijson:decode(PayloadBin)),
-        Handler = list_to_existing_atom(binary_to_list(HandlerBin)),
+        {Handler, Cmd, Payload} = mod_angular:decode_callback(Call),
         case Handler:ws_call(Cmd, Payload, self(), ReplyId, Context) of
             {reply, Reply} ->
                 Msg = mochijson:encode({struct, [{reply_id, ReplyId}, {reply, Reply}]}),
@@ -71,12 +67,8 @@ handle_message(<<"call:", ReplyId:8/binary, ":", Call/binary>>, Context) ->
     end;
 
 handle_message(<<"cast:", Cast/binary>>, Context) ->
-    [HandlerBin, Rest] = binary:split(Cast, <<":">>),
-    [CmdBin, PayloadBin] = binary:split(Rest, <<":">>),
     try
-        Cmd = list_to_existing_atom(binary_to_list(CmdBin)),
-        Payload = z_convert:convert_json(mochijson:decode(PayloadBin)),
-        Handler = list_to_existing_atom(binary_to_list(HandlerBin)),
+        {Handler, Cmd, Payload} = mod_angular:decode_callback(Cast),
         Handler:ws_cast(Cmd, Payload, self(), Context),
         {ok, "{\"noreply\":true}"}
     
