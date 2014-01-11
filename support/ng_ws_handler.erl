@@ -22,6 +22,8 @@ behaviour_info(_Other) ->
 %% @doc Called when the websocket is initialized.
 websocket_init(Context) ->
     z_notifier:notify1({ng_ws_opened, self()}, Context),
+    JSON = {struct, [{status, connected}]},
+    controller_websocket:websocket_send_data(self(), mochijson:encode(JSON)),
     ok.
 
 websocket_message(<<"call:", ReplyId:8/binary, ":", Call/binary>>, From, Context) ->
