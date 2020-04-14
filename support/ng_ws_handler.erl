@@ -74,11 +74,10 @@ reply(Pid, ReplyId, Reply) ->
     Msg = mochijson:encode({struct, [{reply_id, ReplyId}, {reply, Reply}]}),
     controller_websocket:websocket_send_data(Pid, Msg),
     ok.
-  
+
 
 %% @doc Send an error reply to a call.
 reply_error(Pid, ReplyId, Reason) ->
     Msg = mochijson:encode({struct, [{reply_id, ReplyId}, {error, Reason}]}),
     controller_websocket:websocket_send_data(Pid, Msg),
     ok.
-  
